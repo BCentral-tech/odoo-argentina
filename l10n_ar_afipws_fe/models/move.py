@@ -575,72 +575,34 @@ print "Observaciones:", wscdc.Obs
                 fecha_serv_desde = fecha_serv_hasta = None
 
             # invoice amount totals:
-            ##amount_total = inv.amount_untaxed
-            ##for move_tax in inv.move_tax_ids:
-            ##    amount_total += move_tax.tax_amount
-
-            ##imp_total = str("%.2f" % amount_total)
-            # ImpTotConc es el iva no gravado
-            ##imp_tot_conc = str("%.2f" % inv.vat_untaxed_base_amount)
-            # imp_tot_conc = str("%.2f" % inv.amount_untaxed)
-            # tal vez haya una mejor forma, la idea es que para facturas c
-            # no se pasa iva. Probamos hacer que vat_taxable_amount
-            # incorpore a los imp cod 0, pero en ese caso termina reportando
-            # iva y no lo queremos
-            ##if inv.l10n_latam_document_type_id.l10n_ar_letter == 'C':
-            ##    imp_neto = str("%.2f" % inv.amount_untaxed)
-            ##else:
-                #imp_neto = str("%.2f" % inv.vat_taxable_amount)
-            ##    imp_neto = str("%.2f" % inv.vat_taxable_amount)
-            ##imp_trib = str("%.2f" % inv.other_taxes_amount)
-            # imp_iva = str("%.2f" % (inv.amount_total - (inv.amount_untaxed + inv.other_taxes_amount)))
-            ##imp_iva = str("%.2f" % (inv.vat_amount))
-            # se usaba para wsca..
-            # imp_subtotal = str("%.2f" % inv.amount_untaxed)
-            ##imp_op_ex = str("%.2f" % inv.vat_exempt_base_amount)
-            ##moneda_id = inv.currency_id.l10n_ar_afip_code
-            #moneda_ctz = round(1/inv.currency_id.rate,2)
-            ##moneda_ctz = inv.currency_id.rate
-            ##if not moneda_id:
-            ##    raise ValidationError('No esta definido el codigo AFIP en la moneda')
-            
-            # === Totales para AFIP ===
             amount_total = inv.amount_untaxed
             for move_tax in inv.move_tax_ids:
                 amount_total += move_tax.tax_amount
 
             imp_total = str("%.2f" % amount_total)
-
-            # --- Facturas B y C: todo como "no gravado", sin IVA ---
-            if inv.l10n_latam_document_type_id.l10n_ar_letter in ['B', 'C']:
-                imp_tot_conc = str("%.2f" % inv.amount_untaxed)
-                imp_neto = "0.00"
-                imp_iva = "0.00"
-
-            # --- Facturas A y M: IVA discriminado ---
+            # ImpTotConc es el iva no gravado
+            imp_tot_conc = str("%.2f" % inv.vat_untaxed_base_amount)
+            # imp_tot_conc = str("%.2f" % inv.amount_untaxed)
+            # tal vez haya una mejor forma, la idea es que para facturas c
+            # no se pasa iva. Probamos hacer que vat_taxable_amount
+            # incorpore a los imp cod 0, pero en ese caso termina reportando
+            # iva y no lo queremos
+            if inv.l10n_latam_document_type_id.l10n_ar_letter == 'C':
+                imp_neto = str("%.2f" % inv.amount_untaxed)
             else:
-                imp_tot_conc = str("%.2f" % inv.vat_untaxed_base_amount)
+                #imp_neto = str("%.2f" % inv.vat_taxable_amount)
                 imp_neto = str("%.2f" % inv.vat_taxable_amount)
-                imp_iva = str("%.2f" % inv.vat_amount)
-
             imp_trib = str("%.2f" % inv.other_taxes_amount)
+            # imp_iva = str("%.2f" % (inv.amount_total - (inv.amount_untaxed + inv.other_taxes_amount)))
+            imp_iva = str("%.2f" % (inv.vat_amount))
+            # se usaba para wsca..
+            # imp_subtotal = str("%.2f" % inv.amount_untaxed)
             imp_op_ex = str("%.2f" % inv.vat_exempt_base_amount)
             moneda_id = inv.currency_id.l10n_ar_afip_code
+            #moneda_ctz = round(1/inv.currency_id.rate,2)
             moneda_ctz = inv.currency_id.rate
             if not moneda_id:
-                raise ValidationError('No está definido el código AFIP en la moneda')
-
-            # === IVA: solo se informa para facturas A/M ===
-            if inv.l10n_latam_document_type_id.l10n_ar_letter in ['A', 'M']:
-                for vat in inv.move_tax_ids:
-                    if vat.tax_id.tax_group_id.tax_type == 'vat' \
-                    and vat.tax_id.tax_group_id.l10n_ar_vat_afip_code != '2':
-                        _logger.info('Adding VAT %s' % vat.tax_id.tax_group_id.name)
-                        ws.AgregarIva(
-                            vat.tax_id.tax_group_id.l10n_ar_vat_afip_code,
-                            "%.2f" % vat.base_amount,
-                            "%.2f" % vat.tax_amount,
-                        )
+                raise ValidationError('No esta definido el codigo AFIP en la moneda')
 
 
             CbteAsoc = inv.get_related_invoices_data()
