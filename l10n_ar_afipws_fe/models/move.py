@@ -443,6 +443,28 @@ print "Observaciones:", wscdc.Obs
                 'afip_auth_verify_result': ws.Resultado,
                 'afip_auth_verify_observation': '%s%s' % (ws.Obs, ws.ErrMsg)
             })
+    # --- NUEVO: mapea responsabilidad fiscal → ID para AFIP RG 5616 ---
+    def _afip_map_condicion_iva(self, partner):
+        """
+        Devuelve el ID numérico de Condición IVA Receptor esperado por AFIP.
+        Soporta que partner.l10n_ar_afip_responsibility_type_id.code sea numérico o texto.
+        """
+        code = (partner.l10n_ar_afip_responsibility_type_id.code or "").strip()
+        # si ya es numérico, usarlo
+        if code.isdigit():
+            return int(code)
+        # fallback por nombre (ajustá si tus códigos difieren)
+        m = {
+            "responsable_inscripto": 1,
+            "monotributo": 6,
+            "consumidor_final": 3,
+            "exento": 4,
+            "no_responsable": 5,
+        }
+        key = code.lower().replace(" ", "_")
+        return m.get(key)
+
+
 
     def do_pyafipws_request_cae(self):
         "Request to AFIP the invoices' Authorization Electronic Code (CAE)"
@@ -585,16 +607,21 @@ print "Observaciones:", wscdc.Obs
 
             CbteAsoc = inv.get_related_invoices_data()
 
+            cond_iva_id = self._afip_map_condicion_iva(commercial_partner)
+            if cond_iva_id is None:
+                raise UserError(_("Falta la 'Condición frente al IVA' del receptor o no es válida."))
+            cancela = "S" if getattr(inv, "l10n_ar_payment_foreign_currency", False) else "N"
+
             # create the invoice internally in the helper
             if afip_ws == 'wsfe':
                 inv.invoice_currency_rate = moneda_ctz
                 ws.CrearFactura(
                     concepto, tipo_doc, nro_doc, doc_afip_code, pos_number,
                     cbt_desde, cbt_hasta, imp_total, imp_tot_conc, imp_neto,
-                    imp_iva,
-                    imp_trib, imp_op_ex, fecha_cbte, fecha_venc_pago,
-                    fecha_serv_desde, fecha_serv_hasta,
-                    moneda_id, round(moneda_ctz,2)
+                    imp_iva, imp_trib, imp_op_ex, fecha_cbte, fecha_venc_pago,
+                    fecha_serv_desde, fecha_serv_hasta, moneda_id, round(moneda_ctz, 2),
+                    cancela_misma_moneda_ext=cancela,
+                    condicion_iva_receptor_id=cond_iva_id,
                 )
                 if inv.other_taxes_amount > 0:
                     for move_tax in inv.move_tax_ids:
