@@ -580,31 +580,36 @@ print "Observaciones:", wscdc.Obs
                 amount_total += move_tax.tax_amount
 
             imp_total = str("%.2f" % amount_total)
-            # ImpTotConc es el iva no gravado
-            imp_tot_conc = str("%.2f" % inv.vat_untaxed_base_amount)
-            # imp_tot_conc = str("%.2f" % inv.amount_untaxed)
-            # tal vez haya una mejor forma, la idea es que para facturas c
-            # no se pasa iva. Probamos hacer que vat_taxable_amount
-            # incorpore a los imp cod 0, pero en ese caso termina reportando
-            # iva y no lo queremos
-            if inv.l10n_latam_document_type_id.l10n_ar_letter in ['B', 'C']:
-                #imp_neto = str("%.2f" % inv.amount_untaxed)
-                # Facturas B y C: todo como "no gravado"
+
+            letra = inv.l10n_latam_document_type_id.l10n_ar_letter
+
+            # ============================
+            # FACTURA C (MONOTRIBUTO)
+            # ============================
+            if letra == 'C':
+                imp_tot_conc = "0.00"
+                imp_neto = str("%.2f" % inv.amount_untaxed)
+                imp_iva = "0.00"
+                imp_trib = "0.00"
+
+            # ============================
+            # FACTURA B (IVA EXENTO)
+            # ============================
+            elif letra == 'B':
                 imp_tot_conc = str("%.2f" % inv.amount_untaxed)
                 imp_neto = "0.00"
                 imp_iva = "0.00"
+                imp_trib = str("%.2f" % inv.other_taxes_amount)
+
+            # ============================
+            # FACTURA A / M (IVA DISCRIMINADO)
+            # ============================
             else:
-                #imp_neto = str("%.2f" % inv.vat_taxable_amount)
-                #imp_neto = str("%.2f" % inv.vat_taxable_amount)
-                # Facturas A/M: IVA discriminado
                 imp_tot_conc = str("%.2f" % inv.vat_untaxed_base_amount)
                 imp_neto = str("%.2f" % inv.vat_taxable_amount)
                 imp_iva = str("%.2f" % inv.vat_amount)
-            imp_trib = str("%.2f" % inv.other_taxes_amount)
-            # imp_iva = str("%.2f" % (inv.amount_total - (inv.amount_untaxed + inv.other_taxes_amount)))
-            ##imp_iva = str("%.2f" % (inv.vat_amount))
-            # se usaba para wsca..
-            # imp_subtotal = str("%.2f" % inv.amount_untaxed)
+                imp_trib = str("%.2f" % inv.other_taxes_amount)
+
             imp_op_ex = str("%.2f" % inv.vat_exempt_base_amount)
             moneda_id = inv.currency_id.l10n_ar_afip_code
             #moneda_ctz = round(1/inv.currency_id.rate,2)
@@ -918,16 +923,47 @@ print "Observaciones:", wscdc.Obs
             inv._cr.commit()
 
 
+    #def _compute_qrcode(self):
+    #    for rec in self:
+    #        if rec.afip_auth_code:
+    #            #rec.qr_code = base64.b64encode(qrcode.make(rec.fe_qr_url))a
+    #            qr = qrcode.QRCode(
+    #                version=1,
+    #                error_correction=qrcode.constants.ERROR_CORRECT_L,
+    #                box_size=10,
+    #                border=4,
+    #            )
+    #            vals_qr = {
+    #                "ver": 1,
+    #                "fecha": str(rec.invoice_date),
+    #                "cuit": int(rec.company_id.partner_id.vat),
+    #                "ptoVta": rec.journal_id.l10n_ar_afip_pos_number,
+    #                "tipoCmp": int(rec.l10n_latam_document_type_id.code),
+    #                "nroCmp": int(rec.name.split('-')[2]),
+    #                "importe": rec.amount_total,
+    #                "moneda": rec.currency_id.l10n_ar_afip_code,
+    #                "ctz": rec.invoice_currency_rate,
+    #                "tipoDocRec": int(rec.partner_id.l10n_latam_identification_type_id.l10n_ar_afip_code),
+    #                "nroDocRec": int(rec.partner_id.vat),
+    #                "tipoCodAut": 'E',
+    #                "codAut": rec.afip_auth_code,
+    #            }
+    #            rec.fe_qr_url = vals_qr
+    #            qr.add_data(rec.fe_qr_url)
+    #            qr.make(fit=True)
+    #            img = qr.make_image()
+    #            temp = BytesIO()
+    #            img.save(temp, format="PNG")
+    #            qr_image = base64.b64encode(temp.getvalue())
+    #            rec.qr_code = qr_image
+    #        else:
+    #            rec.fe_qr_url = ''
+    #            rec.qr_code = None
+    
     def _compute_qrcode(self):
         for rec in self:
             if rec.afip_auth_code:
-                #rec.qr_code = base64.b64encode(qrcode.make(rec.fe_qr_url))a
-                qr = qrcode.QRCode(
-                    version=1,
-                    error_correction=qrcode.constants.ERROR_CORRECT_L,
-                    box_size=10,
-                    border=4,
-                )
+
                 vals_qr = {
                     "ver": 1,
                     "fecha": str(rec.invoice_date),
@@ -935,23 +971,45 @@ print "Observaciones:", wscdc.Obs
                     "ptoVta": rec.journal_id.l10n_ar_afip_pos_number,
                     "tipoCmp": int(rec.l10n_latam_document_type_id.code),
                     "nroCmp": int(rec.name.split('-')[2]),
-                    "importe": rec.amount_total,
+                    "importe": round(rec.amount_total, 2),
                     "moneda": rec.currency_id.l10n_ar_afip_code,
                     "ctz": rec.invoice_currency_rate,
+                    "tipoCodAut": "E",
+                    "codAut": int(rec.afip_auth_code),
                     "tipoDocRec": int(rec.partner_id.l10n_latam_identification_type_id.l10n_ar_afip_code),
                     "nroDocRec": int(rec.partner_id.vat),
-                    "tipoCodAut": 'E',
-                    "codAut": rec.afip_auth_code,
                 }
-                rec.fe_qr_url = vals_qr
-                qr.add_data(rec.fe_qr_url)
+
+                # 🔹 Convertir a JSON
+                json_qr = json.dumps(vals_qr, separators=(',', ':'))
+
+                # 🔹 Encodear a Base64
+                qr_base64 = base64.b64encode(json_qr.encode("utf-8")).decode("utf-8")
+
+                # 🔹 Armar URL oficial AFIP/ARCA
+                qr_url = f"https://www.afip.gob.ar/fe/qr/?p={qr_base64}"
+
+                # Guardamos la URL real
+                rec.fe_qr_url = qr_url
+
+                # 🔹 Generar imagen del QR con la URL
+                qr = qrcode.QRCode(
+                    version=1,
+                    error_correction=qrcode.constants.ERROR_CORRECT_L,
+                    box_size=10,
+                    border=4,
+                )
+                qr.add_data(qr_url)
                 qr.make(fit=True)
+
                 img = qr.make_image()
                 temp = BytesIO()
                 img.save(temp, format="PNG")
-                qr_image = base64.b64encode(temp.getvalue())
-                rec.qr_code = qr_image
+
+                rec.qr_code = base64.b64encode(temp.getvalue())
+
             else:
                 rec.fe_qr_url = ''
                 rec.qr_code = None
+
 
