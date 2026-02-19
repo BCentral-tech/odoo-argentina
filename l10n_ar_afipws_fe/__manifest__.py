@@ -24,6 +24,7 @@
         'views/product_uom_view.xml',
         'views/res_currency_view.xml',
         'views/report_invoice.xml',
+        'views/report_invoice_lang_fix.xml',
         'security/ir.model.access.csv',
     ],
     'demo': [
@@ -34,3 +35,4 @@
     'auto_install': False,
     'application': False,
 }
+

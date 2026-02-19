@@ -444,25 +444,72 @@ print "Observaciones:", wscdc.Obs
                 'afip_auth_verify_observation': '%s%s' % (ws.Obs, ws.ErrMsg)
             })
     # --- NUEVO: mapea responsabilidad fiscal → ID para AFIP RG 5616 ---
-    def _afip_map_condicion_iva(self, partner):
+    def _afip_map_condicion_iva(self, partner, comprobante_tipo=None):
         """
-        Devuelve el ID numérico de Condición IVA Receptor esperado por AFIP.
-        Soporta que partner.l10n_ar_afip_responsibility_type_id.code sea numérico o texto.
+        Devuelve el ID oficial AFIP de CondicionIVAReceptorId según RG 5616.
+        Si no se pasa comprobante_tipo, se infiere automáticamente.
         """
-        code = (partner.l10n_ar_afip_responsibility_type_id.code or "").strip()
-        # si ya es numérico, usarlo
-        if code.isdigit():
-            return int(code)
-        # fallback por nombre (ajustá si tus códigos difieren)
-        m = {
-            "responsable_inscripto": 1,
-            "monotributo": 6,
-            "consumidor_final": 3,
-            "exento": 4,
-            "no_responsable": 5,
+
+        # --- Inferencia automática del tipo de comprobante ---
+        if not comprobante_tipo:
+            # self = account.move
+            l10n_doc_code = self.l10n_latam_document_type_id.code or ""
+
+            if l10n_doc_code.startswith("1"):   # Factura A (001)
+                comprobante_tipo = "A"
+            elif l10n_doc_code.startswith("6"): # Factura B (006)
+                comprobante_tipo = "B"
+            elif l10n_doc_code.startswith("11"): # Factura C (011)
+                comprobante_tipo = "C"
+            else:
+                # fallback seguro
+                comprobante_tipo = "B"
+
+        # --- Mapeo AFIP REAL ---
+        afip_map = {
+            "IVA Responsable Inscripto": 1,
+            "Responsable Monotributo": 6,
+            "Monotributista Social": 13,
+            "Monotributo Trabajador Independiente Promovido": 16,
+            "IVA Sujeto Exento": 4,
+            "Consumidor Final": 5,
+            "Sujeto No Categorizado": 7,
+            "Proveedor del Exterior": 8,
+            "Cliente del Exterior": 9,
+            "IVA Liberado – Ley N° 19.640": 10,
+            "IVA No Alcanzado": 15,
         }
-        key = code.lower().replace(" ", "_")
-        return m.get(key)
+
+        resp = partner.l10n_ar_afip_responsibility_type_id
+        name = (resp.name or "").strip()
+
+        if name in afip_map:
+            value = afip_map[name]
+        else:
+            code = (resp.code or "").upper()
+            if code == "RI":
+                value = 1
+            elif code in ("MO", "MON", "M"):
+                value = 6
+            elif code == "CF":
+                value = 5
+            elif code == "EX":
+                value = 4
+            else:
+                value = 7  # fallback seguro
+
+        # --- AJUSTE POR TIPO DE COMPROBANTE ---
+        if comprobante_tipo in ("A", "M", "C"):
+            if value not in (1, 6, 13, 16):
+                value = 1  # fallback seguro para A/M/C
+
+        if comprobante_tipo == "B":
+            if value in (1, 6, 13, 16):
+                value = 5  # Consumidor Final (tratamiento AFIP para B)
+
+        return value
+
+
 
 
 
@@ -593,13 +640,28 @@ print "Observaciones:", wscdc.Obs
                 imp_trib = "0.00"
 
             # ============================
-            # FACTURA B (IVA EXENTO)
+            # FACTURA B
             # ============================
             elif letra == 'B':
-                imp_tot_conc = str("%.2f" % inv.amount_untaxed)
-                imp_neto = "0.00"
-                imp_iva = "0.00"
-                imp_trib = str("%.2f" % inv.other_taxes_amount)
+
+                # Detectar si la factura tiene IVA gravado
+                if inv.vat_amount and inv.vat_amount > 0:
+                    # ------------------------------------
+                    # FACTURA B GRAVADA  (YA FUNCIONA BIEN)
+                    # ------------------------------------
+                    imp_tot_conc = "0.00"
+                    imp_neto = str("%.2f" % inv.vat_taxable_amount)
+                    imp_iva = str("%.2f" % inv.vat_amount)
+                    imp_trib = str("%.2f" % inv.other_taxes_amount)
+
+                else:
+                    # ------------------------------------
+                    # FACTURA B EXENTA (DEJARLA TAL CUAL)
+                    # ------------------------------------
+                    imp_tot_conc = str("%.2f" % inv.amount_untaxed)
+                    imp_neto = "0.00"
+                    imp_iva = "0.00"
+                    imp_trib = str("%.2f" % inv.other_taxes_amount)
 
             # ============================
             # FACTURA A / M (IVA DISCRIMINADO)
@@ -620,21 +682,33 @@ print "Observaciones:", wscdc.Obs
 
             CbteAsoc = inv.get_related_invoices_data()
 
-            cond_iva_id = self._afip_map_condicion_iva(commercial_partner)
-            if cond_iva_id is None:
-                raise UserError(_("Falta la 'Condición frente al IVA' del receptor o no es válida."))
+            # RG 5616: CondicionIVAReceptorId no aplica en todos los tipos
+            # de comprobante (ej. algunos MiPyME FCE), AFIP devuelve 10243.
+            fce_doc_codes = [201, 202, 203, 206, 207, 208, 211, 212, 213]
+            send_cond_iva = afip_ws == 'wsfe' and int(doc_afip_code) not in fce_doc_codes
+            cond_iva_id = None
+            if send_cond_iva:
+                cond_iva_id = self._afip_map_condicion_iva(commercial_partner)
+                if cond_iva_id is None:
+                    raise UserError(_("Falta la 'Condición frente al IVA' del receptor o no es válida."))
             cancela = "S" if getattr(inv, "l10n_ar_payment_foreign_currency", False) else "N"
 
             # create the invoice internally in the helper
             if afip_ws == 'wsfe':
                 inv.invoice_currency_rate = moneda_ctz
+                crear_factura_kwargs = {
+                    'cancela_misma_moneda_ext': cancela,
+                    # Evita serializar "false" en XML cuando no aplica.
+                    'condicion_iva_receptor_id': None,
+                }
+                if send_cond_iva:
+                    crear_factura_kwargs['condicion_iva_receptor_id'] = cond_iva_id
                 ws.CrearFactura(
                     concepto, tipo_doc, nro_doc, doc_afip_code, pos_number,
                     cbt_desde, cbt_hasta, imp_total, imp_tot_conc, imp_neto,
                     imp_iva, imp_trib, imp_op_ex, fecha_cbte, fecha_venc_pago,
                     fecha_serv_desde, fecha_serv_hasta, moneda_id, round(moneda_ctz, 2),
-                    cancela_misma_moneda_ext=cancela,
-                    condicion_iva_receptor_id=cond_iva_id,
+                    **crear_factura_kwargs
                 )
                 if inv.other_taxes_amount > 0:
                     for move_tax in inv.move_tax_ids:
@@ -741,11 +815,11 @@ print "Observaciones:", wscdc.Obs
                 if mipyme_fce:
                     # agregamos cbu para factura de credito electronica
                     if not inv.company_id.partner_id.bank_ids \
-                            or not inv.company_id.partner_id.bank_ids[0].cbu:
+                            or not inv.company_id.partner_id.bank_ids[0].acc_number:
                         raise ValidationError('La empresa no tiene declarado el CBU de su cuenta')
                     ws.AgregarOpcional(
                         opcional_id=2101,
-                        valor=inv.company_id.partner_id.bank_ids[0].cbu)
+                        valor=inv.company_id.partner_id.bank_ids[0].acc_number)
                     ws.AgregarOpcional(
                         opcional_id=27,
                         valor=inv.afip_mypyme_sca_adc)

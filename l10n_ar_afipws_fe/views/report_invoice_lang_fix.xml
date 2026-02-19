@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_invoice_document_lang_fix" inherit_id="l10n_ar.report_invoice_document">
+        <xpath expr="//span[contains(@t-out, 'amount_to_text(o.amount_total)')]" position="attributes">
+            <attribute name="t-out">o.currency_id.with_context(lang=(o.partner_id.lang or env.user.lang)).amount_to_text(o.amount_total)</attribute>
+        </xpath>
+    </template>
+</odoo>
