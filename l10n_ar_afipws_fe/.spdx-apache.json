@@ -1,0 +1,193 @@
+{
+    "SPDXID": "SPDXRef-DOCUMENT",
+    "spdxVersion": "SPDX-2.3",
+    "creationInfo": {
+        "created": "2025-07-23T12:25:17Z",
+        "creators": [
+            "Organization: Broadcom Inc. and/or its subsidiaries.",
+            "Tool: Blacksmith-6.46.3"
+        ]
+    },
+    "name": "SPDX document for Apache 2.4.65",
+    "dataLicense": "CC0-1.0",
+    "documentDescribes": [
+        "SPDXRef-apache"
+    ],
+    "documentNamespace": "pkg:bitnami/apache@2.4.65-0?arch=amd64&distro=debian-12",
+    "packages": [
+        {
+            "SPDXID": "SPDXRef-apr",
+            "name": "apr",
+            "versionInfo": "1.7.6",
+            "downloadLocation": "http://apache.uvigo.es/apr/apr-1.7.6.tar.gz",
+            "licenseConcluded": "Apache-2.0",
+            "licenseDeclared": "Apache-2.0",
+            "supplier": "Organization: Bitnami",
+            "originator": "Organization: upstream",
+            "primaryPackagePurpose": "LIBRARY",
+            "filesAnalyzed": false,
+            "externalRefs": [
+                {
+                    "referenceCategory": "SECURITY",
+                    "referenceType": "cpe23Type",
+                    "referenceLocator": "cpe:2.3:*:apache:portable_runtime:1.7.6:*:*:*:*:*:*:*"
+                },
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:bitnami/apr@1.7.6?arch=amd64&distro=debian-12"
+                }
+            ],
+            "copyrightText": "NOASSERTION"
+        },
+        {
+            "SPDXID": "SPDXRef-apr-util",
+            "name": "apr-util",
+            "versionInfo": "1.6.3",
+            "downloadLocation": "http://apache.uvigo.es/apr/apr-util-1.6.3.tar.gz",
+            "licenseConcluded": "Apache-2.0",
+            "licenseDeclared": "Apache-2.0",
+            "supplier": "Organization: Bitnami",
+            "originator": "Organization: upstream",
+            "primaryPackagePurpose": "LIBRARY",
+            "filesAnalyzed": false,
+            "externalRefs": [
+                {
+                    "referenceCategory": "SECURITY",
+                    "referenceType": "cpe23Type",
+                    "referenceLocator": "cpe:2.3:*:apache:apr-util:1.6.3:*:*:*:*:*:*:*"
+                },
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:bitnami/apr-util@1.6.3?arch=amd64&distro=debian-12"
+                }
+            ],
+            "copyrightText": "NOASSERTION"
+        },
+        {
+            "SPDXID": "SPDXRef-apache",
+            "name": "apache",
+            "versionInfo": "2.4.65-0",
+            "downloadLocation": "https://downloads.apache.org/httpd/httpd-2.4.65.tar.gz",
+            "licenseConcluded": "Apache-2.0",
+            "licenseDeclared": "Apache-2.0",
+            "supplier": "Organization: Bitnami",
+            "originator": "Organization: upstream",
+            "primaryPackagePurpose": "LIBRARY",
+            "filesAnalyzed": false,
+            "externalRefs": [
+                {
+                    "referenceCategory": "SECURITY",
+                    "referenceType": "cpe23Type",
+                    "referenceLocator": "cpe:2.3:*:apache:http_server:2.4.65:*:*:*:*:*:*:*"
+                },
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:bitnami/apache@2.4.65-0?arch=amd64&distro=debian-12"
+                }
+            ],
+            "copyrightText": "NOASSERTION"
+        },
+        {
+            "SPDXID": "SPDXRef-modsecurity2",
+            "name": "modsecurity2",
+            "versionInfo": "2.9.11",
+            "downloadLocation": "https://github.com/SpiderLabs/ModSecurity/releases/download/v2.9.11/modsecurity-v2.9.11.tar.gz",
+            "licenseConcluded": "Apache-2.0",
+            "licenseDeclared": "Apache-2.0",
+            "supplier": "Organization: Bitnami",
+            "originator": "Organization: upstream",
+            "primaryPackagePurpose": "LIBRARY",
+            "filesAnalyzed": false,
+            "externalRefs": [
+                {
+                    "referenceCategory": "SECURITY",
+                    "referenceType": "cpe23Type",
+                    "referenceLocator": "cpe:2.3:*:trustwave:modsecurity:2.9.11:*:*:*:*:*:*:*"
+                },
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:bitnami/modsecurity2@2.9.11?arch=amd64&distro=debian-12"
+                }
+            ],
+            "copyrightText": "NOASSERTION"
+        },
+        {
+            "SPDXID": "SPDXRef-modsecurity",
+            "name": "modsecurity",
+            "versionInfo": "3.0.14",
+            "downloadLocation": "https://github.com/SpiderLabs/ModSecurity/releases/download/v3.0.14/modsecurity-v3.0.14.tar.gz",
+            "licenseConcluded": "Apache-2.0",
+            "licenseDeclared": "Apache-2.0",
+            "supplier": "Organization: Bitnami",
+            "originator": "Organization: upstream",
+            "primaryPackagePurpose": "LIBRARY",
+            "filesAnalyzed": false,
+            "externalRefs": [
+                {
+                    "referenceCategory": "SECURITY",
+                    "referenceType": "cpe23Type",
+                    "referenceLocator": "cpe:2.3:*:trustwave:modsecurity:3.0.14:*:*:*:*:*:*:*"
+                },
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:bitnami/modsecurity@3.0.14?arch=amd64&distro=debian-12"
+                }
+            ],
+            "copyrightText": "NOASSERTION"
+        },
+        {
+            "SPDXID": "SPDXRef-modsecurity-apache",
+            "name": "modsecurity-apache",
+            "versionInfo": "0.20210819.0",
+            "downloadLocation": "https://github.com/SpiderLabs/ModSecurity-apache/archive/master.zip",
+            "licenseConcluded": "Apache-2.0",
+            "licenseDeclared": "Apache-2.0",
+            "supplier": "Organization: Bitnami",
+            "originator": "Organization: upstream",
+            "primaryPackagePurpose": "LIBRARY",
+            "filesAnalyzed": false,
+            "externalRefs": [
+                {
+                    "referenceCategory": "PACKAGE-MANAGER",
+                    "referenceType": "purl",
+                    "referenceLocator": "pkg:bitnami/modsecurity-apache@0.20210819.0?arch=amd64&distro=debian-12"
+                }
+            ],
+            "copyrightText": "NOASSERTION"
+        }
+    ],
+    "files": [],
+    "hasExtractedLicensingInfos": [],
+    "relationships": [
+        {
+            "spdxElementId": "SPDXRef-apache",
+            "relationshipType": "CONTAINS",
+            "relatedSpdxElement": "SPDXRef-apr"
+        },
+        {
+            "spdxElementId": "SPDXRef-apache",
+            "relationshipType": "CONTAINS",
+            "relatedSpdxElement": "SPDXRef-apr-util"
+        },
+        {
+            "spdxElementId": "SPDXRef-apache",
+            "relationshipType": "CONTAINS",
+            "relatedSpdxElement": "SPDXRef-modsecurity2"
+        },
+        {
+            "spdxElementId": "SPDXRef-apache",
+            "relationshipType": "CONTAINS",
+            "relatedSpdxElement": "SPDXRef-modsecurity"
+        },
+        {
+            "spdxElementId": "SPDXRef-apache",
+            "relationshipType": "CONTAINS",
+            "relatedSpdxElement": "SPDXRef-modsecurity-apache"
+        }
+    ]
+}

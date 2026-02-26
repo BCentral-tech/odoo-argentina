@@ -452,16 +452,12 @@ print "Observaciones:", wscdc.Obs
 
         # --- Inferencia automática del tipo de comprobante ---
         if not comprobante_tipo:
-            # self = account.move
-            l10n_doc_code = self.l10n_latam_document_type_id.code or ""
-
-            if l10n_doc_code.startswith("1"):   # Factura A (001)
-                comprobante_tipo = "A"
-            elif l10n_doc_code.startswith("6"): # Factura B (006)
-                comprobante_tipo = "B"
-            elif l10n_doc_code.startswith("11"): # Factura C (011)
-                comprobante_tipo = "C"
-            else:
+            # Usar la letra AFIP del documento (A/B/C/M) evita errores con
+            # notas de crédito/débito, cuyos códigos no coinciden con facturas.
+            comprobante_tipo = (
+                self.l10n_latam_document_type_id.l10n_ar_letter or ""
+            ).upper()
+            if comprobante_tipo not in ("A", "B", "C", "M"):
                 # fallback seguro
                 comprobante_tipo = "B"
 
@@ -688,7 +684,9 @@ print "Observaciones:", wscdc.Obs
             send_cond_iva = afip_ws == 'wsfe' and int(doc_afip_code) not in fce_doc_codes
             cond_iva_id = None
             if send_cond_iva:
-                cond_iva_id = self._afip_map_condicion_iva(commercial_partner)
+                cond_iva_id = inv._afip_map_condicion_iva(
+                    commercial_partner, comprobante_tipo=letra
+                )
                 if cond_iva_id is None:
                     raise UserError(_("Falta la 'Condición frente al IVA' del receptor o no es válida."))
             cancela = "S" if getattr(inv, "l10n_ar_payment_foreign_currency", False) else "N"
