@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_account_payment_form_withholding_ui" model="ir.ui.view">
+        <field name="name">account.payment.form.withholding.ui</field>
+        <field name="model">account.payment</field>
+        <field name="inherit_id" ref="l10n_ar_withholding.view_account_payment_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='withholdings_page']" position="inside">
+                <style>
+                    div[name="l10n_ar_related_move_ids"] table tfoot,
+                    div[name="l10n_ar_withholding_ids"] table tfoot,
+                    div[name="l10n_ar_related_move_ids"] .o_list_renderer tfoot,
+                    div[name="l10n_ar_withholding_ids"] .o_list_renderer tfoot {
+                        display: none !important;
+                    }
+                    div[name="l10n_ar_related_move_ids"] .o_list_renderer,
+                    div[name="l10n_ar_withholding_ids"] .o_list_renderer {
+                        min-height: 0 !important;
+                        margin-bottom: 0 !important;
+                    }
+                    div[name="l10n_ar_related_move_ids"] .o_list_table,
+                    div[name="l10n_ar_withholding_ids"] .o_list_table {
+                        margin-bottom: 0 !important;
+                    }
+                    .l10n_ar_compact_block {
+                        margin-bottom: 8px !important;
+                    }
+                    .l10n_ar_compact_block .o_x2m_control_panel {
+                        min-height: 0 !important;
+                        padding-bottom: 0 !important;
+                    }
+                    .l10n_ar_compact_block .table-responsive {
+                        max-height: 170px;
+                        overflow-y: auto;
+                    }
+                    .l10n_ar_compact_block .o_list_renderer table tbody tr td {
+                        padding-top: 4px !important;
+                        padding-bottom: 4px !important;
+                    }
+                    .o_form_view .o_notebook .tab-pane .o_horizontal_separator {
+                        margin-top: 8px !important;
+                        margin-bottom: 8px !important;
+                    }
+                    .o_group.o_inner_group.l10n_ar_withholding_totals {
+                        margin-top: 4px !important;
+                    }
+                    .o_group.o_inner_group.l10n_ar_withholding_totals .o_form_label,
+                    .o_group.o_inner_group.l10n_ar_withholding_totals .o_field_widget {
+                        margin-bottom: 2px !important;
+                    }
+                </style>
+            </xpath>
+            <xpath expr="//page[@name='withholdings_page']" position="attributes">
+                <attribute name="string">Comprobantes y retenciones</attribute>
+            </xpath>
+            <xpath expr="//page[@name='withholdings_page']/field[@name='l10n_ar_withholding_ids']" position="before">
+                <separator string="Comprobantes involucrados" invisible="not l10n_ar_related_move_ids"/>
+                <div class="l10n_ar_compact_block" invisible="not l10n_ar_related_move_ids">
+                    <field name="l10n_ar_related_move_ids" nolabel="1" readonly="1">
+                        <list create="0" delete="0" edit="0">
+                            <field name="invoice_date" string="Fecha"/>
+                            <field name="name" string="Comprobante"/>
+                            <field name="ref" string="Referencia" optional="hide"/>
+                            <field name="amount_untaxed" string="Neto"/>
+                            <field name="amount_total" string="Total"/>
+                            <field name="amount_residual" string="Saldo"/>
+                            <field name="payment_state" string="Estado"/>
+                        </list>
+                    </field>
+                </div>
+                <separator string="Retenciones" invisible="not l10n_ar_withholding_ids"/>
+            </xpath>
+            <xpath expr="//page[@name='withholdings_page']/field[@name='l10n_ar_withholding_ids']" position="replace">
+                <separator string="Totales de retenciones" invisible="not l10n_ar_withholding_ids"/>
+                <div class="l10n_ar_compact_block" invisible="not l10n_ar_withholding_ids">
+                    <field name="l10n_ar_withholding_ids" nolabel="1" colspan="2" readonly="1">
+                        <list>
+                            <field name="move_name" string="Comprobante"/>
+                            <field name="tax_line_id" string="Impuesto"/>
+                            <field name="name" string="Numero de retencion" required="1"/>
+                            <field name="tax_base_amount" string="Importe base"/>
+                            <field name="amount_currency" readonly="0" required="1" string="Importe retenido"/>
+                        </list>
+                    </field>
+                </div>
+                <group col="4" class="l10n_ar_withholding_totals" invisible="not l10n_ar_withholding_ids">
+                    <label for="l10n_ar_withholding_base_total" string="Subtotal base"/>
+                    <field name="l10n_ar_withholding_base_total" nolabel="1" readonly="1"/>
+                    <label for="l10n_ar_withholding_amount_total" string="Subtotal retenido"/>
+                    <field name="l10n_ar_withholding_amount_total" nolabel="1" readonly="1"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>
