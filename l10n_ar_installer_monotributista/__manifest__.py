@@ -1,0 +1,21 @@
+{
+    "name": "Localizacion Argentina - Monotributista",
+    "version": "18.0.1.0.0",
+    "category": "Localization/Argentina",
+    "summary": "Instalacion encadenada del paquete argentino para monotributistas",
+    "license": "AGPL-3",
+    "author": "ServiCentral",
+    "depends": [
+        "l10n_ar",
+        "l10n_ar_bank",
+        "l10n_ar_afipws",
+        "l10n_ar_partner",
+        "l10n_ar_padron",
+        "account_move_tax",
+        "l10n_ar_afipws_fe",
+    ],
+    "data": [],
+    "installable": True,
+    "application": False,
+    "auto_install": False,
+}
