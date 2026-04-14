@@ -3,13 +3,12 @@
 # For copyright and license notices, see __manifest__.py file in module root
 # directory
 ##############################################################################
-from odoo import models, _, fields, api, tools
-from odoo.exceptions import UserError,ValidationError
-from odoo.tools.safe_eval import safe_eval
-import datetime
-from datetime import date
+import logging
 
-from pyafipws.ws_sr_padron import WSSrPadronA5
+from odoo import models, _, fields
+from odoo.exceptions import UserError
+
+_logger = logging.getLogger(__name__)
 
 class AfipwsConnection(models.Model):
     _inherit = "afipws.connection"
@@ -35,20 +34,25 @@ class ResPartner(models.Model):
             'street': census.direccion,
             'city': census.localidad,
             'zip': census.cod_postal,
-            'imp_iva_padron': imp_iva,
-            'last_update_census': fields.Date.today(),
         }
+        if 'imp_iva_padron' in self._fields:
+            vals['imp_iva_padron'] = imp_iva
+        if 'last_update_padron' in self._fields:
+            vals['last_update_padron'] = fields.Date.today()
 
         # padron.idProvincia
 
         ganancias_inscripto = [10, 11]
         ganancias_exento = [12]
         if set(ganancias_inscripto) & set(census.impuestos):
-            vals['imp_ganancias_padron'] = 'AC'
+            if 'imp_ganancias_padron' in self._fields:
+                vals['imp_ganancias_padron'] = 'AC'
         elif set(ganancias_exento) & set(census.impuestos):
-            vals['imp_ganancias_padron'] = 'EX'
+            if 'imp_ganancias_padron' in self._fields:
+                vals['imp_ganancias_padron'] = 'EX'
         elif census.monotributo == 'S':
-            vals['imp_ganancias_padron'] = 'NC'
+            if 'imp_ganancias_padron' in self._fields:
+                vals['imp_ganancias_padron'] = 'NC'
         else:
             _logger.info(
                 "We couldn't get impuesto a las ganancias from padron, you"
@@ -72,14 +76,17 @@ class ResPartner(models.Model):
                 vals['state_id'] = state.id
 
         if imp_iva == 'NI' and census.monotributo == 'S':
-            vals['l10n_ar_afip_responsibility_type_id'] = self.env.ref(
-                'l10n_ar.res_RM').id
+            if 'l10n_ar_afip_responsibility_type_id' in self._fields:
+                vals['l10n_ar_afip_responsibility_type_id'] = self.env.ref(
+                    'l10n_ar.res_RM').id
         elif imp_iva == 'AC':
-            vals['l10n_ar_afip_responsibility_type_id'] = self.env.ref(
-                'l10n_ar.res_IVARI').id
+            if 'l10n_ar_afip_responsibility_type_id' in self._fields:
+                vals['l10n_ar_afip_responsibility_type_id'] = self.env.ref(
+                    'l10n_ar.res_IVARI').id
         elif imp_iva == 'EX':
-            vals['l10n_ar_afip_responsibility_type_id'] = self.env.ref(
-                'l10n_ar.res_IVAE').id
+            if 'l10n_ar_afip_responsibility_type_id' in self._fields:
+                vals['l10n_ar_afip_responsibility_type_id'] = self.env.ref(
+                    'l10n_ar.res_IVAE').id
         else:
             _logger.info(
                 "We couldn't infer the AFIP responsability from padron, you"
@@ -126,8 +133,6 @@ class ResPartner(models.Model):
             raise UserError(error_msg % (
                 self.name, cuit, 'La afip no devolvió nombre'))
         vals = self.parce_census_vals(padron)
-        del vals['imp_iva_padron']
-        del vals['last_update_census']
-        del vals['imp_ganancias_padron']
-        self.write(vals)
-        return vals
+        safe_vals = {key: value for key, value in vals.items() if key in self._fields}
+        self.write(safe_vals)
+        return safe_vals

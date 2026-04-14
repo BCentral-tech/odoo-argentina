@@ -18,12 +18,12 @@
             <field name="model">l10n_latam.document.type</field>
             <field name="inherit_id" ref="l10n_latam_invoice_document.view_document_type_tree"/>
             <field name="arch" type="xml">
-                <list>
-                    <field name="export_to_digital" widget="boolean_toggle" />
-	    	</list>
-	    	<xpath expr="//list" position="attributes">
-		    <attribute name="editable">bottom</attribute>
-		</xpath>
+                <xpath expr="//list" position="inside">
+                    <field name="export_to_digital" widget="boolean_toggle"/>
+                </xpath>
+                <xpath expr="//list" position="attributes">
+                    <attribute name="editable">bottom</attribute>
+                </xpath>
             </field>
         </record>
 

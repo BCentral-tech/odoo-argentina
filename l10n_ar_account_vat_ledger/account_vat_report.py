@@ -4,11 +4,10 @@
 # directory
 ##############################################################################
 from odoo import models, fields, api, _
-from odoo.exceptions import ValidationError
 import time
 
 
-class account_vat_ledger(models.Model):
+class AccountVatLedger(models.Model):
 
     _name = "account.vat.ledger"
     _description = "Account VAT Ledger"
@@ -19,8 +18,7 @@ class account_vat_ledger(models.Model):
         'res.company',
         string='Empresa',
         required=True,
-        default=lambda self: self.env[
-            'res.company']._company_default_get('account.vat.ledger')
+        default=lambda self: self.env.company,
     )
     type = fields.Selection(
         [('sale', 'Sale'), ('purchase', 'Purchase')],
@@ -69,41 +67,27 @@ class account_vat_ledger(models.Model):
     # cambiar periodo de una cia hija con usuario distinto a admin
     # @api.depends('journal_ids', 'period_id')
     def _get_data(self):
-        #self.afip_responsability_type_ids = self.env[
-        #    'l10n_ar.afip.responsibility.type'].search([])
-
-        if self.type == 'sale':
-            invoices_domain = [
-                # cancel invoices with internal number are invoices
-                ('state', '!=', 'draft'),
-                ('document_number', '!=', False),
-                # ('internal_number', '!=', False),
-                ('journal_id', 'in', self.journal_ids.ids),
-                ('date', '>=', self.date_from),
-                ('date', '<=', self.date_to),
-            ]
-            invoices = self.env['account.move'].search(
-                # TODO, tal vez directamente podemos invertir el orden, como?
-                invoices_domain,
-                order='invoice_date asc, document_number asc, id asc')
-        else:
-            invoices_domain = [
-                # cancel invoices with internal number are invoices
-                ('state', '!=', 'draft'),
-                ('name', '!=', False),
-                # ('internal_number', '!=', False),
-                ('journal_id', 'in', self.journal_ids.ids),
-                ('date', '>=', self.date_from),
-                ('date', '<=', self.date_to),
-            ]
-            invoices = self.env['account.move'].search(
-                # TODO, tal vez directamente podemos invertir el orden, como?
-                invoices_domain,
-                order='invoice_date asc, name asc, id asc')
-
-
-        #self.document_type_ids = invoices.mapped('l10n_latam_document_type_id')
-        self.invoice_ids = invoices
+        for rec in self:
+            if rec.type == 'sale':
+                invoices_domain = [
+                    ('state', '=', 'posted'),
+                    ('move_type', 'in', ['out_invoice', 'out_refund']),
+                    ('journal_id', 'in', rec.journal_ids.ids),
+                    ('date', '>=', rec.date_from),
+                    ('date', '<=', rec.date_to),
+                ]
+                order = 'invoice_date asc, name asc, id asc'
+            else:
+                invoices_domain = [
+                    ('state', '=', 'posted'),
+                    ('move_type', 'in', ['in_invoice', 'in_refund']),
+                    ('journal_id', 'in', rec.journal_ids.ids),
+                    ('date', '>=', rec.date_from),
+                    ('date', '<=', rec.date_to),
+                ]
+                order = 'invoice_date asc, ref asc, id asc'
+            rec.invoice_ids = self.env['account.move'].search(
+                invoices_domain, order=order)
 
     def _get_name(self):
         for rec in self:
@@ -116,9 +100,9 @@ class account_vat_ledger(models.Model):
 
             name = _("%s Libro de IVA %s - %s") % (
                 ledger_type,
-                rec.date_from and fields.Date.from_string(
+                rec.date_from and fields.Date.to_date(
                     rec.date_from).strftime("%d-%m-%Y") or '',
-                rec.date_to and fields.Date.from_string(
+                rec.date_to and fields.Date.to_date(
                     rec.date_to).strftime("%d-%m-%Y") or '',
             )
             if rec.reference:
@@ -128,9 +112,7 @@ class account_vat_ledger(models.Model):
     @api.onchange('company_id')
     def change_company(self):
         now = time.strftime('%Y-%m-%d')
-        company_id = self.company_id.id
-        domain = [('company_id', '=', company_id),
-                  ('date_start', '<', now), ('date_stop', '>', now)]
+        domain = []
         if self.type == 'sale':
             domain = [('type', '=', 'sale')]
         elif self.type == 'purchase':
@@ -150,6 +132,12 @@ class account_vat_ledger(models.Model):
 
     def action_to_draft(self):
         self.state = 'draft'
+
+    def action_print_xlsx(self):
+        self.ensure_one()
+        return self.env.ref(
+            'l10n_ar_account_vat_ledger.account_vat_ledger_xlsx'
+        ).report_action(self, data={})
 
 class AccountVatLedgerXlsx(models.AbstractModel):
     _name = 'report.l10n_ar_account_vat_ledger.account_vat_ledger_xlsx'

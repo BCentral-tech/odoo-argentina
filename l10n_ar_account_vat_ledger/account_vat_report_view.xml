@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<openerp>
+<odoo>
 	<data>
 
         <record model='ir.ui.view' id='account_vat_ledger_tree'>
@@ -23,6 +23,8 @@
 		<form string="VAT Ledger">
 		    <field name="type" invisible="1"/>
                     <header>
+			    <button name="action_print_xlsx" string="Exportar XLSX"
+				    type="object" icon="fa-download"/>
 			    <button name="action_present" string="Present" 
 				    invisible="state != 'draft'" 
 				    type="object" class="oe_highlight"/>
@@ -45,7 +47,7 @@
     	                </group>
     	                <notebook>
                             <page string="Journals" name="journal_ids">
-                                <field name="journal_ids" domain="[('type','in',['purchase', 'sale', 'purchase_refund', 'sale_refund'])]"/>
+                                <field name="journal_ids" domain="[('type','in',['purchase', 'sale'])]"/>
                             </page>
                             <page string="Invoices" name="invoices">
                                 <field name="invoice_ids">
@@ -56,10 +58,7 @@
     	                    </page>
     	                </notebook>
                     </sheet>
-                    <div class="oe_chatter">
-                        <field name="message_follower_ids" widget="mail_followers"/>
-                        <field name="message_ids" widget="mail_thread"/>
-                    </div>
+                    <chatter/>
 	            </form>
 			</field>
 		</record>
@@ -88,4 +87,4 @@
                   parent="account.menu_finance_receivables"
                   sequence="40"/>                          
 	</data>
-</openerp>
+</odoo>

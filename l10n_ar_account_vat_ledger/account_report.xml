@@ -1,16 +1,13 @@
-<?xml version="1.0"?>
-<openerp>
-        <data>
-
-`<report
-  id="account_vat_ledger_xlsx"
-  model="account.vat.ledger"
-  string="Print to XLSX"
-  report_type="xlsx"
-  name="l10n_ar_account_vat_ledger.account_vat_ledger_xlsx"
-  file="account_vat_ledger"
-  attachment_use="False"
- />`
-
-</data>
-</openerp>
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="account_vat_ledger_xlsx" model="ir.actions.report">
+            <field name="name">Print to XLSX</field>
+            <field name="model">account.vat.ledger</field>
+            <field name="report_type">xlsx</field>
+            <field name="report_name">l10n_ar_account_vat_ledger.account_vat_ledger_xlsx</field>
+            <field name="report_file">l10n_ar_account_vat_ledger.account_vat_ledger_xlsx</field>
+            <field name="binding_model_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

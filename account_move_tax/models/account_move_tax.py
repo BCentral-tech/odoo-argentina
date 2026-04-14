@@ -1,13 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import api, fields, models, tools, _
-from odoo.exceptions import UserError,ValidationError
-from odoo.tools import float_is_zero, pycompat
-from odoo.addons import decimal_precision as dp
-from datetime import date
-import os
-import base64
-from collections import defaultdict
+from odoo import fields, models
 
 class AccountMove(models.Model):
         _inherit = 'account.move'
@@ -60,8 +53,17 @@ class AccountMove(models.Model):
                 for move_tax in self.move_tax_ids:
                     move_tax.unlink()
                 if self.move_type in ['out_invoice','out_refund']:
-                    for line in self.line_ids:
-                        tax = self.env['account.tax'].search([('name','=',line.name),('type_tax_use','=','sale')])
+                    tax_lines = self.line_ids.filtered(lambda line: line.tax_line_id)
+                    if not tax_lines:
+                        tax_lines = self.line_ids
+                    for line in tax_lines:
+                        tax = line.tax_line_id
+                        if not tax and line.name:
+                            tax = self.env['account.tax'].search([
+                                ('name', '=', line.name),
+                                ('type_tax_use', '=', 'sale'),
+                                ('company_id', 'in', [self.company_id.id, False]),
+                            ], limit=1)
                         if tax:
                             vals = {
                                 'move_id': self.id,
@@ -79,7 +81,7 @@ class AccountMove(models.Model):
                                 vals['tax_amount'] = line.debit
                             base_amount = 0
                             for inv_line in self.invoice_line_ids:
-                                if inv_line.tax_ids and tax.id in inv_line.tax_ids.ids:
+                                if tax in inv_line.tax_ids:
                                     base_amount = base_amount + inv_line.price_subtotal
                             vals['base_amount'] = base_amount
                             move_tax_id = self.env['account.move.tax'].create(vals)

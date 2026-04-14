@@ -66,6 +66,19 @@ class AccountVatLedger(models.Model):
     prorate_tax_credit = fields.Boolean(
     )
 
+    def _is_refund_document(self, invoice):
+        return invoice.move_type in ['in_refund', 'out_refund']
+
+    def _split_document_number(self, invoice):
+        number_source = (
+            getattr(invoice, 'l10n_latam_document_number', False) or
+            getattr(invoice, 'document_number', False) or
+            invoice.name or '')
+        match = re.search(r'(\d+)-(\d+)', number_source)
+        if not match:
+            return ('00000', '0')
+        return match.group(1), match.group(2)
+
     def format_amount(self, amount, padding=15, decimals=2, invoice=False):
         # get amounts on correct sign despite conifiguration on taxes and tax
         # codes
@@ -82,7 +95,7 @@ class AccountVatLedger(models.Model):
         # seguramente para algunos otros tambien pero realmente no se usan y el digital tiende a depreciarse
         # y el uso de internal_type a cambiar
         if invoice and invoice.l10n_latam_document_type_id.code in ['39', '40', '41', '66', '99'] \
-           and invoice.type in ['in_refund', 'out_refund']:
+           and self._is_refund_document(invoice):
             amount = -amount
 
         if amount < 0:
@@ -116,7 +129,7 @@ class AccountVatLedger(models.Model):
                 self.date_to,
                 # self.period_id.name
             )
-            self.digital_import_aliquots_file = base64.encodestring(
+            self.digital_import_aliquots_file = base64.encodebytes(
                 self.REGDIGITAL_CV_COMPRAS_IMPORTACIONES.encode('ISO-8859-1'))
         else:
             self.digital_import_aliquots_file = False
@@ -213,7 +226,7 @@ class AccountVatLedger(models.Model):
                 # Tipo de comprobante
                 line = line + inv.l10n_latam_document_type_id.code.zfill(3)
                 # Punto de venta
-                pos, number = inv.name[5:].split('-')
+                pos, number = self._split_document_number(inv)
                 line = line + pos
                 # Numero de comprobante
                 line = line + number.zfill(20)
@@ -274,7 +287,7 @@ class AccountVatLedger(models.Model):
                 # Tipo de comprobante
                 line = line + inv.l10n_latam_document_type_id.code.zfill(3)
                 # Punto de venta
-                pos, number = inv.name[5:].split('-')
+                pos, number = self._split_document_number(inv)
                 line = line + pos
                 # Numero de comprobante
                 line = line + number.zfill(20)
@@ -370,7 +383,7 @@ class AccountVatLedger(models.Model):
                     # Tipo de comprobante
                     line = line + inv.l10n_latam_document_type_id.code.zfill(3)
                     # Punto de venta
-                    pos, number = inv.name[5:].split('-')
+                    pos, number = self._split_document_number(inv)
                     line = line + pos
                     # Numero de comprobante
                     line = line + number.zfill(20)
@@ -385,7 +398,7 @@ class AccountVatLedger(models.Model):
                     # Tipo de comprobante
                     line = line + inv.l10n_latam_document_type_id.code.zfill(3)
                     # Punto de venta
-                    pos, number = inv.name[5:].split('-')
+                    pos, number = self._split_document_number(inv)
                     line = line + pos
                     # Numero de comprobante
                     line = line + number.zfill(20)
