@@ -59,13 +59,16 @@ class AccountMove(models.Model):
         # validate_payment = not self._context.get('validate_payment')
         for rec in self:
             pay_journal = rec.pay_now_journal_id
-            if pay_journal and rec.state == 'open':
+            if (
+                    pay_journal and
+                    rec.state == 'posted' and
+                    rec.payment_state in ['not_paid', 'in_payment']):
                 # si bien no hace falta mandar el partner_type al paygroup
                 # porque el defaults lo calcula solo en funcion al tipo de
                 # cuenta, es mas claro mandarlo y podria evitar error si
                 # estamos usando cuentas cruzadas (payable, receivable) con
                 # tipo de factura
-                if rec.type in ['in_invoice', 'in_refund']:
+                if rec.move_type in ['in_invoice', 'in_refund']:
                     partner_type = 'supplier'
                 else:
                     partner_type = 'customer'
@@ -79,7 +82,7 @@ class AccountMove(models.Model):
                 payment_group = rec.env[
                     'account.payment.group'].with_context(
                         pay_context).create({
-                            'payment_date': rec.date_invoice
+                            'payment_date': rec.invoice_date or rec.date
                         })
                 # el difference es positivo para facturas (de cliente o
                 # proveedor) pero negativo para NC.
@@ -93,13 +96,15 @@ class AccountMove(models.Model):
                         partner_type == 'customer' and
                         payment_group.payment_difference < 0.0):
                     payment_type = 'outbound'
-                    payment_methods = pay_journal.outbound_payment_method_ids
+                    payment_methods = (
+                        pay_journal.outbound_payment_method_line_ids)
                 else:
                     payment_type = 'inbound'
-                    payment_methods = pay_journal.inbound_payment_method_ids
+                    payment_methods = (
+                        pay_journal.inbound_payment_method_line_ids)
 
                 payment_method = payment_methods.filtered(
-                    lambda x: x.code == 'manual')
+                    lambda x: x.code == 'manual')[:1]
                 if not payment_method:
                     raise ValidationError(_(
                         'Pay now journal must have manual method!'))
@@ -112,14 +117,14 @@ class AccountMove(models.Model):
                     'partner_id': payment_group.partner_id.id,
                     'amount': abs(payment_group.payment_difference),
                     'journal_id': pay_journal.id,
-                    'payment_method_id': payment_method.id,
-                    'payment_date': rec.date_invoice,
+                    'payment_method_line_id': payment_method.id,
+                    'date': rec.invoice_date or rec.date,
                 })
                 # if validate_payment:
                 payment_group.post()
 
     def action_view_payment_groups(self):
-        if self.type in ('in_invoice', 'in_refund'):
+        if self.move_type in ('in_invoice', 'in_refund'):
             action = self.env.ref(
                 'account_payment_group.action_account_payments_group_payable')
         else:
@@ -143,7 +148,7 @@ class AccountMove(models.Model):
 
     def button_cancel(self):
         self.filtered(
-            lambda x: x.state == 'open' and x.pay_now_journal_id).write(
+            lambda x: x.state == 'posted' and x.pay_now_journal_id).write(
                 {'pay_now_journal_id': False})
         return super(AccountMove, self).button_cancel()
 
@@ -157,7 +162,6 @@ class AccountMove(models.Model):
             partner_type = 'supplier'
         return {
             'name': _('Register Payment'),
-            'view_type': 'form',
             'view_mode': 'form',
             'res_model': 'account.payment.group',
             'view_id': False,

@@ -64,12 +64,13 @@
         <field name="arch" type="xml">
             <!-- we make title invisible and we add a new one -->
             <div class="oe_title" position="attributes">
-                <!-- <attribute name="invisible">1</attribute> -->
-                <attribute name="invisible">payment_type != 'transfer' or state == 'draft'</attribute>
+                <!-- Keep the standard title on regular quick payments.
+                     Only replace it when the payment actually belongs to a payment group. -->
+                <attribute name="invisible">payment_group_id and payment_type != 'transfer'</attribute>
             </div>
             <div class="oe_title" position="after">
                 <!-- only show this field if we are not on a payment group -->
-                <div class="oe_title" name="payment_group_id" invisible="context.get('payment_group')">
+                <div class="oe_title" name="payment_group_id" invisible="context.get('payment_group') or not payment_group_id">
                     <h1><field name="payment_group_id"/></h1>
                 </div>
             </div>
@@ -225,7 +226,7 @@
                 <separator/>
                 <filter name="journal_id" string="Journal" domain="[]" context="{'group_by': 'journal_id'}"/>
                 <!-- filter name="destination_journal_id" string="Transfer To" domain="[]" context="{'group_by': 'destination_journal_id'}"/ -->
-                <filter name="payment_method_id" string="Payment Method" domain="[]" context="{'group_by': 'payment_method_id'}"/>
+                <filter name="payment_method_line_id" string="Payment Method" domain="[]" context="{'group_by': 'payment_method_line_id'}"/>
                 <filter name="state" string="State" domain="[]" context="{'group_by': 'state'}"/>
                 <filter name="currency_id" string="Currency" domain="[]" context="{'group_by': 'currency_id'}" groups="base.group_multi_currency"/>
                 <filter name="company_id" string="Company" domain="[]" context="{'group_by': 'company_id'}" groups="base.group_multi_company"/>
@@ -234,19 +235,23 @@
     </record>
 
     <record id="action_account_payments_transfer" model="ir.actions.act_window">
-        <field name="name">Transfers</field>
+        <field name="name">Transferencias</field>
         <field name="res_model">account.payment</field>
-        <field name="view_mode">list,form,graph</field>
-        <field name="context">{'default_payment_type': 'transfer'}</field>
-        <field name="domain">[('payment_type', '=', 'transfer')]</field>
-        <!-- <field name="view_id" ref="view_account_payment_transfer_tree"/> -->
+        <field name="view_mode">form,list,graph</field>
+        <field name="view_id" ref="view_account_payment_transfer_form"/>
         <field name="search_view_id" ref="view_account_payment_transfer_search"/>
-        <field name="view_ids" eval="[(5, 0, 0),
-            (0, 0, {'view_mode': 'list', 'view_id': ref('view_account_payment_transfer_tree')}),
-            (0, 0, {'view_mode': 'form', 'view_id': ref('view_account_payment_transfer_form')})]"/>
+        <field name="context">{'default_payment_type': 'outbound', 'default_is_internal_transfer': True}</field>
+        <field name="domain">[('is_internal_transfer', '=', True)]</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_account_payment_transfer_form')}),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_account_payment_transfer_tree')})
+        ]"/>
         <field name="help" type="html">
-            <p class="oe_view_nocontent_create">
-              Click to register a transfer between liquidity journals
+            <p class="o_view_nocontent_smiling_face">
+              Registrar una transferencia
+            </p><p>
+              Utilice esta opción para registrar transferencias internas entre diarios de liquidez.
             </p>
         </field>
     </record>
@@ -256,5 +261,10 @@
 	    id="menu_action_account_payments_transfer" 
 	    parent="account_payment_fix.menu_finance_bank_and_cash" 
 	    sequence="30" groups="account.group_account_user"/>
+
+    <record id="menu_action_account_payments_transfer" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+        <field name="groups_id" eval="[(6, 0, [ref('base.group_no_one')])]"/>
+    </record>
 
 </odoo>

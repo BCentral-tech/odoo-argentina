@@ -29,7 +29,12 @@ class AccountPayment(models.Model):
                         ids.append(line.id)
             rec.invoice_line_ids = [(6,0,ids)]
 
-    invoice_line_ids = fields.Many2one('account.move.line','invoice_line_ids',store=True,compute=_compute_invoice_line_ids)
+    invoice_line_ids = fields.Many2many(
+        'account.move.line',
+        string='Invoice Lines',
+        store=True,
+        compute=_compute_invoice_line_ids,
+    )
     payment_group_id = fields.Many2one(
         'account.payment.group',
         'Recibo',
@@ -87,14 +92,7 @@ class AccountPayment(models.Model):
 
     @api.model
     def default_get(self, fields):
-        res = super(AccountPayment, self).default_get(fields)
-        if res.get('payment_type') == 'transfer':
-            res['payment_type'] = 'outbound'
-            res['partner_id'] = self.env.user.company_id.partner_id.id
-            res['journal_id'] = self.env['account.journal'].search([('type','in',['bank','cash'])])
-            res['destination_journal_id'] = self.env['account.journal'].search([('type','in',['bank','cash'])])
-            res['payment_type'] = 'outbound'
-        return res
+        return super(AccountPayment, self).default_get(fields)
 
     def _get_blocking_l10n_latam_warning_msg(self):
         msgs = []
@@ -328,7 +326,8 @@ class AccountPayment(models.Model):
                 'company_id': company_id,
                 'partner_type': vals.get('partner_type'),
                 'partner_id': vals.get('partner_id'),
-                'payment_date': vals.get('date', fields.Date.context_today(self)),
+                'payment_date': vals.get(
+                    'date', fields.Date.context_today(self)),
                 'communication': vals.get('communication'),
             })
             vals['payment_group_id'] = payment_group.id
@@ -337,7 +336,24 @@ class AccountPayment(models.Model):
         if 'payment_type_copy' in vals:
             vals['payment_type'] = vals['payment_type_copy']
             del vals['payment_type_copy']
-        if 'destination_journal_id' in vals:
+        if vals.get('payment_method_id') and not vals.get(
+                'payment_method_line_id') and vals.get('journal_id'):
+            payment_method = self.env['account.payment.method'].browse(
+                vals['payment_method_id'])
+            payment_method_line = self.env['account.payment.method.line'].search([
+                ('journal_id', '=', vals['journal_id']),
+                ('payment_method_id', '=', payment_method.id),
+                ('payment_type', '=', vals.get('payment_type')),
+            ], limit=1)
+            if payment_method_line:
+                vals['payment_method_line_id'] = payment_method_line.id
+            del vals['payment_method_id']
+        keep_destination_journal = any([
+            vals.get('payment_type') == 'transfer',
+            vals.get('is_internal_transfer'),
+            self._context.get('default_is_internal_transfer'),
+        ])
+        if 'destination_journal_id' in vals and not keep_destination_journal:
             del vals['destination_journal_id']
         payment = super(AccountPayment, self).create(vals)
         if payment.move_id and payment.currency_id.id != payment.company_id.currency_id.id \
@@ -377,7 +393,6 @@ class AccountPayment(models.Model):
         return {
             'name': _('Payment Lines'),
             'type': 'ir.actions.act_window',
-            'view_type': 'form',
             'view_mode': 'form',
             'res_model': 'account.payment',
             'target': 'new',

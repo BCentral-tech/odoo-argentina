@@ -238,10 +238,8 @@ class AccountTax(models.Model):
             partner=None, fixed_multiplicator=1):
         if self.amount_type == 'partner_tax':
             # TODO obtener fecha de otra manera?
-            try:
-                date = self._context.date_invoice
-            except Exception:
-                date = fields.Date.context_today(self)
+            date = self._context.get('date_invoice')
+            date = fields.Date.to_date(date) if date else fields.Date.context_today(self)
             return base_amount * self.get_partner_alicuota_percepcion(
                 partner, date)
         else:

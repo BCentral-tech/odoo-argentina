@@ -4,6 +4,7 @@
     'category': 'Localization/Argentina',
     'depends': [
         'account',
+        'l10n_ar_withholding',
         'l10n_ar_account_withholding',
         'account_payment_group',
     ],
@@ -12,6 +13,7 @@
     'name': 'l10n_ar_report_withholding',
     'data': [
         'report_payment_withholding.xml',
+        'report_payment_receipt_templates.xml',
         'withholding_view.xml',
     ],
     'demo': [

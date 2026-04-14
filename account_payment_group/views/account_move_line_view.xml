@@ -50,7 +50,9 @@
     <field name="arch" type="xml">
 
         <button id="account_invoice_payment_btn" position="attributes">
-            <attribute name="name">action_account_invoice_payment_group</attribute>
+            <!-- Keep the invoice form aligned with the standard quick payment wizard.
+                 The payment group flow remains available from its own menus. -->
+            <attribute name="name">action_register_payment</attribute>
         </button>
 
     </field>

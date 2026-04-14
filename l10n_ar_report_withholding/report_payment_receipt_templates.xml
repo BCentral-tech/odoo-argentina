@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template inherit_id="l10n_ar_withholding.report_payment_receipt_document" id="report_payment_receipt_document_disable_core_withholding">
+        <xpath expr="//table[@id='l10n_ar_withholding']" position="replace"/>
+    </template>
+
+    <template inherit_id="account.report_payment_receipt_document" id="report_payment_receipt_document_withholding_fallback">
+        <xpath expr="//table[@name='invoices']" position="before">
+            <t t-set="compat_withholding_lines" t-value="o._get_receipt_withholding_lines()"/>
+            <t t-if="compat_withholding_lines">
+                <table id="l10n_ar_withholding_fallback" class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th><span>Impuesto</span></th>
+                            <th><span>Nro. retención</span></th>
+                            <th class="text-end"><span>Base</span></th>
+                            <th class="text-end"><span>Importe</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t t-foreach="compat_withholding_lines" t-as="line">
+                            <tr>
+                                <td><span t-field="line.tax_line_id.name"/></td>
+                                <td><span t-field="line.name"/></td>
+                                <td class="text-end">
+                                    <span t-out="abs(line.tax_base_amount)" t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                                </td>
+                                <td class="text-end">
+                                    <span t-out="abs(line.amount_currency)" t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                                </td>
+                            </tr>
+                        </t>
+                    </tbody>
+                </table>
+            </t>
+        </xpath>
+    </template>
+</odoo>

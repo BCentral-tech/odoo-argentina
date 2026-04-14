@@ -10,8 +10,8 @@ _logger = logging.getLogger(__name__)
 
 
 MAP_PARTNER_TYPE_ACCOUNT_TYPE = {
-    'customer': 'receivable',
-    'supplier': 'payable',
+    'customer': 'asset_receivable',
+    'supplier': 'liability_payable',
 }
 MAP_ACCOUNT_TYPE_PARTNER_TYPE = {
     'asset_receivable': 'customer',
@@ -476,7 +476,6 @@ class AccountPaymentGroup(models.Model):
         return {
             'name': _('Compose Email'),
             'type': 'ir.actions.act_window',
-            'view_type': 'form',
             'view_mode': 'form',
             'res_model': 'mail.compose.message',
             'views': [(compose_form.id, 'form')],
@@ -557,13 +556,12 @@ class AccountPaymentGroup(models.Model):
             rec.matched_move_line_ids = res
 
     # @api.depends('payment_ids.move_line_ids')
-    @api.depends('payment_ids.invoice_ids')
+    @api.depends('payment_ids.reconciled_invoice_ids')
     def _compute_move_lines(self):
         for rec in self:
             ids = []
-            # rec.move_line_ids = rec.payment_ids.mapped('invoice_line_ids')
             for payment in rec.payment_ids:
-                for inv in payment.invoice_ids:
+                for inv in payment.reconciled_invoice_ids:
                     for line in inv.line_ids:
                         if line.account_id.account_type in ['asset_receivable','liability_payable']:
                             ids.append(line.id)
@@ -698,7 +696,9 @@ class AccountPaymentGroup(models.Model):
                 'default_partner_id', partner[0].id)
             partner_id = self._context.get('default_partner_id',partner[0].id)
             rec['to_pay_move_line_ids'] = [(6, False, to_pay_move_line_ids)]
-        if self._context.get('partner_type') == 'customer':
+        partner_type = self._context.get(
+            'partner_type', self._context.get('default_partner_type'))
+        if partner_type == 'customer':
             rec['account_internal_type'] = 'asset_receivable'
         else:
             rec['account_internal_type'] = 'liability_payable'
@@ -711,7 +711,6 @@ class AccountPaymentGroup(models.Model):
                 move_ids.append(payment.move_id.id)
         return {
             'name': _('Journal Items'),
-            'view_type': 'form',
             'view_mode': 'list,form',
             'res_model': 'account.move.line',
             'view_id': False,
@@ -810,11 +809,8 @@ class AccountPaymentGroup(models.Model):
             # al crear desde website odoo crea primero el pago y lo postea
             # y no debemos re-postearlo
             if not create_from_website and not create_from_expense:
-                #rec.payment_ids.filtered(lambda x: x.state == 'draft').action_post()
                 for payment in rec.payment_ids:
                     if payment.state == 'draft':
-                        if not payment.move_id:
-                            payment._generate_journal_entry()
                         payment.action_post()
 
             # counterpart_aml = rec.payment_ids.mapped('invoice_line_ids').filtered(
@@ -840,12 +836,7 @@ class AccountPaymentGroup(models.Model):
             #    rec.message_post_with_template(
             #        rec.receiptbook_id.mail_template_id.id,
             #    )
-        self.env.cr.commit()
-        for rec in self:
-            for matched_move in rec.matched_move_line_ids:
-                if matched_move.move_id.amount_residual == 0 and matched_move.move_id.payment_state != 'paid':
-                    sql = "UPDATE account_move SET payment_state = 'paid' WHERE id = %s"%(matched_move.move_id.id)
-                    self.env.cr.execute(sql)
+        return True
 
 
     @api.returns('mail.message', lambda value: value.id)

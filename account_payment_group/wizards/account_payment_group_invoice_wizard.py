@@ -147,49 +147,59 @@ class AccountPaymentGroupInvoiceWizard(models.TransientModel):
         self.ensure_one()
         payment_group = self.payment_group_id
         if payment_group.partner_type == 'supplier':
-            invoice_type = 'in_'
+            move_type = 'in_'
         else:
-            invoice_type = 'out_'
+            move_type = 'out_'
 
         if self._context.get('refund'):
-            invoice_type += 'refund'
+            move_type += 'refund'
         else:
-            invoice_type += 'invoice'
+            move_type += 'invoice'
 
         return {
-            'name': self.description,
-            'date': self.date,
-            'date_invoice': self.date_invoice,
-            'origin': _('Payment id %s') % payment_group.id,
+            'invoice_date': self.date_invoice,
+            'date': self.date or self.date_invoice,
+            'invoice_origin': _('Payment id %s') % payment_group.id,
+            'ref': self.description,
             'journal_id': self.journal_id.id,
-            'user_id': payment_group.partner_id.user_id.id,
             'partner_id': payment_group.partner_id.id,
-            'type': invoice_type,
-            # 'invoice_line_ids': [('invoice_type')],
+            'move_type': move_type,
         }
 
     def confirm(self):
         self.ensure_one()
 
-        invoice = self.env['account.invoice'].create(self.get_invoice_vals())
+        move_vals = self.get_invoice_vals()
+        invoice = self.env['account.move'].create(move_vals)
 
         inv_line_vals = {
             'product_id': self.product_id.id,
+            'move_id': invoice.id,
+            'name': self.description or self.product_id.display_name,
+            'quantity': 1.0,
             'price_unit': self.amount_untaxed,
-            'invoice_id': invoice.id,
-            'invoice_line_tax_ids': [(6, 0, self.tax_ids.ids)],
+            'tax_ids': [(6, 0, self.tax_ids.ids)],
         }
-        invoice_line = self.env['account.invoice.line'].new(inv_line_vals)
+        invoice_line = self.env['account.move.line'].with_context(
+            default_move_type=invoice.move_type).new(inv_line_vals)
+        invoice_line.move_id = invoice
         invoice_line._onchange_product_id()
         # restore chosen taxes (changed by _onchange_product_id)
-        invoice_line.invoice_line_tax_ids = self.tax_ids
+        invoice_line.tax_ids = self.tax_ids
         line_values = invoice_line._convert_to_write(invoice_line._cache)
         line_values['price_unit'] = self.amount_untaxed
-        if self.account_analytic_id:
-            line_values['account_analytic_id'] = self.account_analytic_id.id
+        if self.account_analytic_id and 'analytic_distribution' in invoice_line._fields:
+            line_values['analytic_distribution'] = {
+                self.account_analytic_id.id: 100,
+            }
+        elif self.account_analytic_id and 'analytic_account_id' in invoice_line._fields:
+            line_values['analytic_account_id'] = self.account_analytic_id.id
         invoice.write({'invoice_line_ids': [(0, 0, line_values)]})
-        invoice.compute_taxes()
-        invoice.action_invoice_open()
+        invoice.action_post()
 
-        self.payment_group_id.to_pay_move_line_ids += (
-            invoice.open_move_line_ids)
+        open_move_lines = invoice.line_ids.filtered(
+            lambda line: (
+                line.account_id.account_type in [
+                    'asset_receivable', 'liability_payable'
+                ] and line.amount_residual))
+        self.payment_group_id.to_pay_move_line_ids += open_move_lines

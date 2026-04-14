@@ -22,7 +22,7 @@ class AccountPayment(models.Model):
     )
     communication = fields.Text('Notas')
 
-    def post(self):
+    def action_post(self):
         without_number = self.filtered(
             lambda x: x.tax_withholding_id and not x.withholding_number)
 
@@ -40,13 +40,16 @@ class AccountPayment(models.Model):
             payment.withholding_number = \
                 payment.tax_withholding_id.withholding_sequence_id.next_by_id()
 
-        return super(AccountPayment, self).post()
+        return super(AccountPayment, self).action_post()
+
+    def post(self):
+        return self.action_post()
 
     def _get_liquidity_move_line_vals(self, amount):
         vals = super(AccountPayment, self)._get_liquidity_move_line_vals(
             amount)
         if self.payment_method_code == 'withholding':
-            if self.payment_type == 'transfer':
+            if self.is_internal_transfer or self.payment_type == 'transfer':
                 raise UserError(_(
                     'You can not use withholdings on transfers!'))
             if (
@@ -72,7 +75,9 @@ class AccountPayment(models.Model):
         payments = self.filtered(
             lambda x: x.payment_method_code == 'withholding')
         for rec in payments:
-            name = rec.tax_withholding_id.name or rec.payment_method_id.name
+            name = (
+                rec.tax_withholding_id.name or
+                rec.payment_method_line_id.display_name)
             rec.payment_method_description = name
         return super(
             AccountPayment,

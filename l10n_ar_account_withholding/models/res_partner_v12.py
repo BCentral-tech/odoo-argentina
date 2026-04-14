@@ -16,7 +16,7 @@ class ResPartner(models.Model):
     _inherit = 'res.partner'
 
     gross_income_number = fields.Char(
-        'Gross Income Number',
+        'Número de Ingresos Brutos',
         size=64,
     )
     gross_income_type = fields.Selection([
@@ -24,19 +24,19 @@ class ResPartner(models.Model):
         ('local', 'Local'),
         ('no_liquida', 'No Liquida'),
     ],
-        'Gross Income Type',
+        'Tipo de Ingresos Brutos',
     )
     gross_income_jurisdiction_ids = fields.Many2many(
         'res.country.state',
-        string='Gross Income Jurisdictions',
-        help='The state of the company is cosidered the main jurisdiction',
+        string='Jurisdicciones de Ingresos Brutos',
+        help='La provincia de la empresa se considera la jurisdicción principal',
     )
     start_date = fields.Date(
-        'Start-up Date',
+        'Fecha de Inicio',
     )
     afip_responsability_type_id = fields.Many2one(
         'l10n_ar.afip.responsability.type',
-        'AFIP Responsability Type',
+        'Tipo de Responsabilidad AFIP',
         auto_join=True,
         index=True,
     )
@@ -71,30 +71,32 @@ class ResPartner(models.Model):
     )
     integrante_soc_padron = fields.Selection(
         [('N', 'No'), ('S', 'Si')],
-        'Integrante Sociedad',
+        'Integrante de Sociedad',
     )
     monotributo_padron = fields.Selection(
         [('N', 'No'), ('S', 'Si')],
         'Monotributo',
     )
     actividad_monotributo_padron = fields.Char(
+        'Actividad Monotributo Padrón',
     )
     empleador_padron = fields.Boolean(
+        'Empleador Padrón',
     )
     actividades_padron = fields.Many2many(
         'afip.activity',
         'res_partner_afip_activity_rel',
         'partner_id', 'afip_activity_id',
-        'Actividades',
+        'Actividades Padrón',
     )
     impuestos_padron = fields.Many2many(
         'afip.tax',
         'res_partner_afip_tax_rel',
         'partner_id', 'afip_tax_id',
-        'Impuestos',
+        'Impuestos Padrón',
     )
     last_update_padron = fields.Date(
-        'Last Update Padron',
+        'Última Actualización Padrón',
     )
 
     def update_constancia_from_padron_afip(self):

@@ -41,4 +41,9 @@
     <menuitem id="account_payment_fix.menu_finance_bank_and_cash" parent="account.menu_finance_entries"
 	    sequence="4" groups="account.group_account_user" name="Bank and Cash"/>
 
+    <record id="account_payment_fix.menu_finance_bank_and_cash" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+        <field name="groups_id" eval="[(6, 0, [ref('base.group_no_one')])]"/>
+    </record>
+
 </odoo>

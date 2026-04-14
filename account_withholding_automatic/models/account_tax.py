@@ -1,5 +1,4 @@
 from odoo import models, fields, api, _
-import odoo.addons.decimal_precision as dp
 from odoo.exceptions import UserError, ValidationError
 from ast import literal_eval
 from odoo.tools.safe_eval import safe_eval as eval
@@ -12,12 +11,12 @@ class AccountTax(models.Model):
 
     withholding_non_taxable_amount = fields.Float(
         'Monto no imponible de impuesto',
-        digits=dp.get_precision('Account'),
+        digits='Account',
         help="Amount to be substracted before applying alicuot"
     )
     withholding_non_taxable_minimum = fields.Float(
         'Minimo no imponible',
-        digits=dp.get_precision('Account'),
+        digits='Account',
         help="Amounts lower than this wont't have any withholding"
     )
     withholding_amount_type = fields.Selection([
@@ -193,17 +192,22 @@ result = withholdable_base_amount * 0.10
                 journal = None
                 for jour in journals:
                     for outbound_payment_method in jour.outbound_payment_method_line_ids:
-                        if payment_method.id == payment_method.id:
+                        if outbound_payment_method.payment_method_id == payment_method:
                             journal = jour
+                            vals['payment_method_line_id'] = (
+                                outbound_payment_method.id)
+                            break
+                    if journal:
+                        break
                 if not journal:
                     raise UserError(_(
                         'No hay diario de retenciones definido para la empresa %s %s') % (
                         tax.company_id.name,payment_method.name))
                 vals['journal_id'] = journal.id
-                vals['payment_method_id'] = payment_method.id
                 vals['payment_type'] = 'outbound'
                 vals['partner_type'] = payment_group.partner_type
                 vals['partner_id'] = payment_group.partner_id.id
+                vals.setdefault('date', payment_group.payment_date)
                 payment_withholding = payment_withholding.create(vals)
         return True
 
@@ -239,7 +243,7 @@ result = withholdable_base_amount * 0.10
         """
         We make this here so it can be inherited by localizations
         """
-        to_date = fields.Date.from_string(
+        to_date = fields.Date.to_date(
             payment_group.payment_date) or datetime.date.today()
         common_previous_domain = [
             ('partner_id.commercial_partner_id', '=',

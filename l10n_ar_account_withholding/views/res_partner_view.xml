@@ -7,7 +7,7 @@
             <field name="inherit_id" ref="account.view_partner_property_form"/>
             <field name="arch" type="xml">
             <page name="accounting" position="after">
-	   	<page string="Fiscal Data" name="fiscal_data" 
+	   	<page string="Datos Fiscales" name="fiscal_data" 
 			    invisible  = "not is_company and not parent_id">
                     <group string="AFIP" name="afip">
                         <group name="afip_col_1">
@@ -27,15 +27,15 @@
                             <field name="impuestos_padron" widget="many2many_tags"/>
                         </group>
                     </group>
-                    <group string="Others" name="others">
+                    <group string="Otros" name="others">
                         <group name="others_col_1">
-                            <label for="gross_income_number" string="Gross Income"/>
+                            <label for="gross_income_number" string="Ingresos Brutos"/>
                             <div>
                                 <field name="gross_income_type" class="oe_inline"/>
-				<field name="gross_income_number" placeholder="Number..." class="oe_inline" 
+				<field name="gross_income_number" placeholder="Número..." class="oe_inline" 
 					invisible = "gross_income_type not in ['multilateral', 'local']" 
 					required = "gross_income_type in ['multilateral', 'local']"/>
-				<field name="gross_income_jurisdiction_ids" widget="many2many_tags" placeholder="Other Jurisdictions" class="oe_inline" 
+				<field name="gross_income_jurisdiction_ids" widget="many2many_tags" placeholder="Otras Jurisdicciones" class="oe_inline" 
 					invisible = "gross_income_type != 'multilateral'"/>
                             </div>
                  	    <field name="drei"/>

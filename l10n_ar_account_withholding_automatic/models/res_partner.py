@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api
 import logging
-# from dateutil.relativedelta import relativedelta
+from dateutil.relativedelta import relativedelta
 _logger = logging.getLogger(__name__)
 
 
@@ -33,7 +33,7 @@ class ResPartner(models.Model):
         company = self._context.get('invoice_company')
         date_invoice = self._context.get('date_invoice')
         if date_invoice and company:
-            date = fields.Date.from_string(date_invoice)
+            date = fields.Date.to_date(date_invoice)
             arba = self.get_arba_data(company, date)
             return arba.alicuota_percepcion / 100.0
         return 0
