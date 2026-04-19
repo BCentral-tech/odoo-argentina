@@ -1,30 +1,7 @@
-.. image:: https://img.shields.io/badge/licence-AGPL--3-blue.svg
-    :alt: License
+ServiCentral Odoo Argentina
+===========================
 
-Libro de IVA Digital
-====================
-Libro de IVA Digital
+La documentacion canonica de este repositorio esta en ``README.md``.
 
-Configuration
-=============
-
-TODO
-
-Usage
-=====
-
-TODO
-
-Know issues / Roadmap
-=====================
-
-TODO
-
-Credits
-=======
-
-Contributors
-------------
-
-* TODO
-
+Este archivo se mantiene solo por compatibilidad con herramientas que esperan un
+``README.rst``.
