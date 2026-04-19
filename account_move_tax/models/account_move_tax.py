@@ -6,8 +6,8 @@ class AccountMove(models.Model):
         _inherit = 'account.move'
 
         def action_post(self):
-            if self.move_type in ['out_invoice','out_refund']:
-                self.compute_taxes()
+            for move in self.filtered(lambda move: move.move_type in ['out_invoice', 'out_refund']):
+                move.compute_taxes()
             return super(AccountMove, self).action_post()
         
 
