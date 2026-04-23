@@ -96,7 +96,11 @@ class AccountPayment(models.Model):
         Sobre escribimos y desactivamos la parte del dominio de la funcion
         original ya que se pierde si se vuelve a entrar
         """
-        if not self.invoice_line_ids:
+        has_invoice_lines = (
+            'invoice_line_ids' in self._fields and bool(self.invoice_line_ids)
+        )
+        has_invoices = 'invoice_ids' in self._fields and bool(self.invoice_ids)
+        if not has_invoice_lines and not has_invoices:
             # Set default partner type for the payment type
             if self.payment_type == 'inbound':
                 self.partner_type = 'customer'

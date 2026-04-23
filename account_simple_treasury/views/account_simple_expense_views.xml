@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_account_simple_expense_list" model="ir.ui.view">
+        <field name="name">account.simple.expense.list</field>
+        <field name="model">account.simple.expense</field>
+        <field name="arch" type="xml">
+            <list string="Gastos" decoration-info="state == 'draft'" decoration-muted="state == 'cancelled'">
+                <field name="date"/>
+                <field name="name"/>
+                <field name="label" optional="show"/>
+                <field name="journal_id"/>
+                <field name="account_id"/>
+                <field name="partner_id" optional="show"/>
+                <field name="amount" widget="monetary" sum="Total"/>
+                <field name="tax_amount" widget="monetary" optional="hide" sum="Impuestos"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="activity_ids" widget="list_activity" optional="show"/>
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'posted'" decoration-muted="state == 'cancelled'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_account_simple_expense_form" model="ir.ui.view">
+        <field name="name">account.simple.expense.form</field>
+        <field name="model">account.simple.expense</field>
+        <field name="arch" type="xml">
+            <form string="Gasto">
+                <header>
+                    <button name="action_post" type="object" string="Publicar" class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_cancel" type="object" string="Revertir" invisible="state != 'posted'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,posted,cancelled"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_move" type="object" class="oe_stat_button" icon="fa-bars" string="Asiento" invisible="not move_id"/>
+                    </div>
+                    <div class="oe_title">
+                        <label for="label"/>
+                        <h1>
+                            <field name="label" readonly="state != 'draft'" placeholder="por ejemplo, peaje autopista"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <label for="amount" string="Total"/>
+                            <div class="o_row">
+                                <field name="amount" widget="monetary" readonly="state != 'draft'" class="oe_inline"/>
+                                <field name="currency_id" readonly="1" options="{'no_create': True}" groups="base.group_multi_currency"/>
+                            </div>
+                            <label for="tax_ids" string="Incluir impuestos"/>
+                            <div class="o_row">
+                                <field name="tax_ids" widget="many2many_tags" readonly="state != 'draft'" options="{'no_create': True}" domain="[('type_tax_use', 'in', ['purchase', 'none']), ('company_id', '=', company_id)]"/>
+                                <span class="d-flex" invisible="tax_amount == 0">
+                                    incluye <field name="tax_amount" class="mx-1" widget="monetary"/> de impuestos
+                                </span>
+                            </div>
+                            <field name="untaxed_amount" widget="monetary" readonly="1" invisible="tax_amount == 0"/>
+                            <field name="partner_id" readonly="state != 'draft'"/>
+                        </group>
+                        <group>
+                            <field name="name" readonly="1"/>
+                            <field name="date" readonly="state != 'draft'"/>
+                            <field name="account_id" readonly="state != 'draft'" domain="[('deprecated', '=', False), ('account_type', 'not in', ['asset_receivable', 'liability_payable', 'asset_cash', 'liability_credit_card', 'off_balance']), ('company_ids', 'parent_of', company_id)]"/>
+                            <field name="journal_id" readonly="state != 'draft'" domain="[('type', 'in', ['bank', 'cash', 'credit']), ('company_id', '=', company_id)]" options="{'no_create': True}"/>
+                            <field name="company_id" groups="base.group_multi_company" readonly="state != 'draft'"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="move_id" readonly="1" invisible="not move_id"/>
+                            <field name="reversal_move_id" readonly="1" invisible="not reversal_move_id"/>
+                        </group>
+                    </group>
+                </sheet>
+                <div class="o_attachment_preview o_center_attachment"/>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_account_simple_expense_search" model="ir.ui.view">
+        <field name="name">account.simple.expense.search</field>
+        <field name="model">account.simple.expense</field>
+        <field name="arch" type="xml">
+            <search string="Gastos">
+                <field name="name"/>
+                <field name="label"/>
+                <field name="journal_id"/>
+                <field name="account_id"/>
+                <field name="partner_id"/>
+                <filter name="draft" string="Borrador" domain="[('state', '=', 'draft')]"/>
+                <filter name="posted" string="Publicado" domain="[('state', '=', 'posted')]"/>
+                <filter name="cancelled" string="Cancelado" domain="[('state', '=', 'cancelled')]"/>
+                <separator/>
+                <filter name="group_by_journal" string="Diario" context="{'group_by': 'journal_id'}"/>
+                <filter name="group_by_account" string="Cuenta" context="{'group_by': 'account_id'}"/>
+                <filter name="group_by_date" string="Fecha" context="{'group_by': 'date'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_account_simple_expense" model="ir.actions.act_window">
+        <field name="name">Gastos</field>
+        <field name="res_model">account.simple.expense</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_account_simple_expense_search"/>
+        <field name="context">{}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Registrar un gasto
+            </p>
+            <p>
+                Use esta opcion para imputar un gasto a una cuenta contable y descontarlo del diario de pago.
+            </p>
+        </field>
+    </record>
+
+    <record id="account_payment_fix.menu_finance_bank_and_cash" model="ir.ui.menu">
+        <field name="active" eval="True"/>
+        <field name="groups_id" eval="[(6, 0, [ref('account.group_account_user')])]"/>
+        <field name="name">Banco y Caja</field>
+    </record>
+
+    <menuitem
+        id="menu_account_simple_expense"
+        name="Gastos"
+        parent="account_payment_fix.menu_finance_bank_and_cash"
+        action="action_account_simple_expense"
+        sequence="20"
+        groups="account.group_account_user"/>
+</odoo>

@@ -10,7 +10,7 @@ from io import BytesIO
 import logging
 import sys
 import traceback
-from datetime import datetime, date
+from datetime import datetime
 
 import qrcode
 import json
@@ -260,8 +260,20 @@ class AccountMove(models.Model):
         # that happens if you choose the modify option of the credit note
         # wizard. A mapping of which documents can be reported as related
         # documents would be a better solution
-        if self.l10n_latam_document_type_id.internal_type in ['debit_note', 'credit_note'] \
-                and self.invoice_origin:
+        if self.l10n_latam_document_type_id.internal_type in ['debit_note', 'credit_note']:
+            related_invoice = self.reversed_entry_id or self.debit_origin_id
+            if (
+                related_invoice
+                and related_invoice.commercial_partner_id == self.commercial_partner_id
+                and related_invoice.company_id == self.company_id
+                and related_invoice.document_number
+                and related_invoice.l10n_latam_document_type_id.l10n_ar_letter == self.l10n_latam_document_type_id.l10n_ar_letter
+                and related_invoice.l10n_latam_document_type_id != self.l10n_latam_document_type_id
+                and related_invoice.state not in ['draft', 'cancel']
+            ):
+                return related_invoice
+            if not self.invoice_origin:
+                return self.browse()
             return self.search([
                 ('commercial_partner_id', '=', self.commercial_partner_id.id),
                 ('company_id', '=', self.company_id.id),
@@ -273,6 +285,17 @@ class AccountMove(models.Model):
                 limit=1)
         else:
             return self.browse()
+
+    def _l10n_ar_get_associated_period_dates(self):
+        self.ensure_one()
+        invoice_date = fields.Date.to_date(self.invoice_date)
+        period_from = fields.Date.to_date(self.l10n_ar_afip_service_start) or invoice_date.replace(day=1)
+        period_to = fields.Date.to_date(self.l10n_ar_afip_service_end) or invoice_date
+        if period_to > invoice_date:
+            period_to = invoice_date
+        if period_from > period_to:
+            period_from = period_to
+        return period_from, period_to
 
     def action_post(self):
         """
@@ -863,11 +886,9 @@ print "Observaciones:", wscdc.Obs
                     )
             # Notas de debito
             if inv.l10n_latam_document_type_id.code in ['2','7','12','3','8','13'] and not CbteAsoc:
-                year = date.today().year
-                month = date.today().month
-                day = date.today().day
-                fecha_desde = str(year) + str(month).zfill(2) + '01'
-                fecha_hasta = str(year) + str(month).zfill(2) + str(day).zfill(2)
+                period_from, period_to = inv._l10n_ar_get_associated_period_dates()
+                fecha_desde = period_from.strftime('%Y%m%d')
+                fecha_hasta = period_to.strftime('%Y%m%d')
                 ws.AgregarPeriodoComprobantesAsociados(fecha_desde,fecha_hasta)
 
 
