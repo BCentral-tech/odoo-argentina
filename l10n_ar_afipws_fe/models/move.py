@@ -198,6 +198,7 @@ class AccountMove(models.Model):
     def _compute_barcode(self):
         for rec in self:
             barcode = False
+            rec.l10n_ar_afip_barcode = False
             if rec.afip_auth_code:
                 cae_due = ''.join(
                     [c for c in str(

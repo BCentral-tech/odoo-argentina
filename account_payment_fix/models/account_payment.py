@@ -82,6 +82,14 @@ class AccountPayment(models.Model):
                 methods = rec.journal_id.inbound_payment_method_line_ids
             rec.payment_method_ids = methods
 
+    def _has_invoice_lines(self):
+        self.ensure_one()
+        return 'invoice_line_ids' in self._fields and bool(self.invoice_line_ids)
+
+    def _is_internal_transfer(self):
+        self.ensure_one()
+        return 'is_internal_transfer' in self._fields and bool(self.is_internal_transfer)
+
     @api.onchange('currency_id')
     def _onchange_currency(self):
         """ Anulamos metodo nativo que pisa el monto remanente que pasamos
@@ -96,7 +104,7 @@ class AccountPayment(models.Model):
         Sobre escribimos y desactivamos la parte del dominio de la funcion
         original ya que se pierde si se vuelve a entrar
         """
-        if not self.invoice_line_ids:
+        if not self._has_invoice_lines():
             # Set default partner type for the payment type
             if self.payment_type == 'inbound':
                 self.partner_type = 'customer'
@@ -138,18 +146,16 @@ class AccountPayment(models.Model):
         #for rec in self.filtered(
         #        lambda x: not x.invoice_line_ids and x.payment_type != 'transfer'):
         for rec in self.filtered(
-                lambda x: not x.is_internal_transfer):
-            partner = self.partner_id.with_context(
-                with_company=self.company_id.id)
-            partner = self.partner_id
-            if self.partner_type == 'customer':
-                self.destination_account_id = (
+                lambda x: not x._is_internal_transfer()):
+            partner = rec.partner_id.with_company(rec.company_id)
+            if rec.partner_type == 'customer':
+                rec.destination_account_id = (
                     partner.property_account_receivable_id.id)
             else:
-                self.destination_account_id = (
+                rec.destination_account_id = (
                     partner.property_account_payable_id.id)
         #import pdb;pdb.set_trace()
-        for rec in self.filtered(lambda x: x.is_internal_transfer):
+        for rec in self.filtered(lambda x: x._is_internal_transfer()):
             if rec.payment_type == 'outbound':
-                self.destination_account_id = rec.journal_id.company_id.transfer_account_id.id
+                rec.destination_account_id = rec.journal_id.company_id.transfer_account_id.id
         return res
